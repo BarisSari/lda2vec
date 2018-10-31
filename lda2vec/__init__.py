@@ -1,10 +1,13 @@
-import dirichlet_likelihood
-import embed_mixture
-import tracking
-import preprocess
-import corpus
-import topics
-import negative_sampling
+import sys
+sys.path.append('~/topic-modeling/')
+
+from lda2vec import dirichlet_likelihood
+from lda2vec import embed_mixture
+from lda2vec import tracking
+from lda2vec import preprocess
+from lda2vec import corpus
+from lda2vec import topics
+from lda2vec import negative_sampling
 
 dirichlet_likelihood = dirichlet_likelihood.dirichlet_likelihood
 EmbedMixture = embed_mixture.EmbedMixture

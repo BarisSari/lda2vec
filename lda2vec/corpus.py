@@ -568,7 +568,7 @@ class Corpus():
                     break
             if vector is None:
                 try:
-                    word = unicode(word)
+                    word = str(word)
                     idx = lengths >= len(word) - 3
                     idx &= lengths <= len(word) + 3
                     sel = choices[idx]
@@ -576,7 +576,7 @@ class Corpus():
                     choice = np.array(keys_raw)[idx][np.argmin(d)]
                     # choice = difflib.get_close_matches(word, choices)[0]
                     vector = model[choice]
-                    print compact, word, ' --> ', choice
+                    print(compact, word, ' --> ', choice)
                 except IndexError:
                     pass
             if vector is None:
