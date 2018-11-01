@@ -86,8 +86,7 @@ class Corpus():
         """
         self._check_unfinalized()
         uniques, counts = np.unique(np.ravel(loose_array), return_counts=True)
-        msg = "Loose arrays cannot have elements below the values of special "
-        msg += "tokens as these indices are reserved"
+        msg = "Loose arrays cannot have elements below the values of special tokens as these indices are reserved"
         assert uniques.min() >= min(self.specials.values()), msg
         for k, v in zip(uniques, counts):
             self.counts_loose[k] += v
@@ -172,13 +171,11 @@ class Corpus():
         return self._keys_frequency
 
     def _check_finalized(self):
-        msg = "self.finalized() must be called before any other array ops"
-        assert self._finalized, msg
+        assert self._finalized, "self.finalized() must be called before any other array ops"
 
     def _check_unfinalized(self):
-        msg = "Cannot update word counts after self.finalized()"
-        msg += "has been called"
-        assert not self._finalized, msg
+        assert not self._finalized, "Cannot update word counts after self.finalized() has been called"
+
 
     def filter_count(self, words_compact, min_count=15, max_count=0,
                      max_replacement=None, min_replacement=None):

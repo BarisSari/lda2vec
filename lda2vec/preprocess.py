@@ -1,11 +1,12 @@
-from spacy.lang.en import English
-from spacy.attrs import LOWER, LIKE_URL, LIKE_EMAIL
-
+from spacy import load
+from spacy.attrs import LOWER, LIKE_URL, LIKE_EMAIL, POS, ENT_TYPE, IS_ALPHA
 import numpy as np
+from spacy.tokenizer import Tokenizer
+
+# spacy.prefer_gpu()
 
 
-def tokenize(texts, max_length, skip=-2, attr=LOWER, merge=False, nlp=None,
-             **kwargs):
+def tokenize(texts, max_length, skip=-2, merge=False, **kwargs):
     """ Uses spaCy to quickly tokenize text and return an array
     of indices.
 
@@ -40,7 +41,7 @@ def tokenize(texts, max_length, skip=-2, attr=LOWER, merge=False, nlp=None,
     Returns
     -------
     arr : 2D array of ints
-        Has shape (len(texts), max_length). Each value represents
+        Has shape (len(data), max_length). Each value represents
         the word index.
     vocab : dict
         Keys are the word index, and values are the string. The pad index gets
@@ -64,42 +65,42 @@ def tokenize(texts, max_length, skip=-2, attr=LOWER, merge=False, nlp=None,
     >>> arr[1, 1]  # The URL token is thrown out
     -2
     """
-    if nlp is None:
-        nlp = English()
-    data = np.zeros((len(texts), max_length), dtype='int32')
-    data[:] = skip
+
+    nlp = load('en_core_web_sm')
     bad_deps = ('amod', 'compound')
-    for row, doc in enumerate(nlp.pipe(texts, **kwargs)):
-        if merge:
-            # from the spaCy blog, an example on how to merge
-            # noun phrases into single tokens
-            for phrase in doc.noun_chunks:
-                # Only keep adjectives and nouns, e.g. "good ideas"
-                while len(phrase) > 1 and phrase[0].dep_ not in bad_deps:
-                    phrase = phrase[1:]
-                if len(phrase) > 1:
-                    # Merge the tokens, e.g. good_ideas
-                    phrase.merge(phrase.root.tag_, phrase.text,
-                                 phrase.root.ent_type_)
-                # Iterate over named entities
-                for ent in doc.ents:
-                    if len(ent) > 1:
-                        # Merge them into single tokens
-                        ent.merge(ent.root.tag_, ent.text, ent.label_)
-        dat = doc.to_array([attr, LIKE_EMAIL, LIKE_URL]).astype('int32')
+    tokenizer = Tokenizer(nlp.vocab)
+    # tokens = tokenizer(u'This is a sentence')
+    # assert len(tokens) == 4
+
+    data = np.zeros((len(texts), max_length), dtype='int32')
+    for row, doc in enumerate(nlp.pipe(texts, batch_size=5)):
+        chunks = list(doc.noun_chunks)
+        for phrase in chunks:
+            # print(phrase)
+            while len(phrase) > 1 and phrase[0].dep_ not in bad_deps:
+                phrase = phrase[1:]
+            if len(phrase) > 1:  # Merge the tokens, e.g. good_ideas
+                phrase.merge(phrase.root.tag_, phrase.text, phrase.root.ent_type_)
+            # print(phrase)
+
+        for ent in doc.ents:
+            if len(ent) > 1:  # Merge them into single tokens
+                ent.merge(ent.root.tag_, ent.text, ent.label_)
+        dat = doc.to_array([LOWER, LIKE_EMAIL, LIKE_URL])  # converting this array to int32 leads to negative indices
         if len(dat) > 0:
-            dat = dat.astype('int32')
-            msg = "Negative indices reserved for special tokens"
-            assert dat.min() >= 0, msg
+            assert dat.min() >= 0, "Negative indices reserved for special tokens"
             # Replace email and URL tokens
             idx = (dat[:, 1] > 0) | (dat[:, 2] > 0)
             dat[idx] = skip
             length = min(len(dat), max_length)
             data[row, :length] = dat[:length, 0].ravel()
-    uniques = np.unique(data)
-    vocab = {v: nlp.vocab[v].lower_ for v in uniques if v != skip}
-    vocab[skip] = '<SKIP>'
-    return data, vocab
+        # print(dat)
+        # input()
+
+        uniques = np.unique(data)
+        vocab = {v: nlp.vocab[v].lower_ for v in uniques if v != skip}
+        vocab[skip] = '<SKIP>'
+        return data, vocab
 
 
 if __name__ == "__main__":
